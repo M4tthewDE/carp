@@ -22,9 +22,10 @@ impl ColorConfig {
         bit_depth: &mut u64,
         num_planes: &mut u64,
     ) -> ColorConfig {
-        let mut cc = ColorConfig::default();
-
-        cc.high_bitdepth = b.f(1) != 0;
+        let mut cc = ColorConfig {
+            high_bitdepth: b.f(1) != 0,
+            ..Default::default()
+        };
 
         if seq_profile == 2 && cc.high_bitdepth {
             cc.twelve_bit = b.f(1) != 0;
@@ -87,18 +88,16 @@ impl ColorConfig {
             } else if seq_profile == 1 {
                 cc.subsampling_x = false;
                 cc.subsampling_y = false;
-            } else {
-                if *bit_depth == 12 {
-                    cc.subsampling_x = b.f(1) != 0;
-                    if cc.subsampling_x {
-                        cc.subsampling_y = b.f(1) != 0;
-                    } else {
-                        cc.subsampling_y = false;
-                    }
+            } else if *bit_depth == 12 {
+                cc.subsampling_x = b.f(1) != 0;
+                if cc.subsampling_x {
+                    cc.subsampling_y = b.f(1) != 0;
                 } else {
-                    cc.subsampling_x = true;
                     cc.subsampling_y = false;
                 }
+            } else {
+                cc.subsampling_x = true;
+                cc.subsampling_y = false;
             }
 
             if cc.subsampling_x && cc.subsampling_y {
