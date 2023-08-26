@@ -1,11 +1,16 @@
 pub struct BitStream {
     bits: Vec<u8>,
-    position: usize,
+    pub position: usize,
+    leb_128_bytes: u64,
 }
 
 impl BitStream {
     pub fn new(bits: Vec<u8>) -> BitStream {
-        BitStream { bits, position: 0 }
+        BitStream {
+            bits,
+            position: 0,
+            leb_128_bytes: 0,
+        }
     }
 
     pub fn f(&mut self, n: u64) -> u64 {
@@ -22,6 +27,24 @@ impl BitStream {
         self.position += 1;
 
         bit
+    }
+
+    pub fn leb128(&mut self) -> u64 {
+        let mut value = 0;
+        self.leb_128_bytes = 0;
+
+        for i in 0..8 {
+            let leb_128_byte = self.f(8);
+
+            value |= (leb_128_byte & 0x7f) << (i * 7);
+            self.leb_128_bytes += 1;
+
+            if leb_128_byte & 0x80 == 0 {
+                break;
+            }
+        }
+
+        value
     }
 }
 

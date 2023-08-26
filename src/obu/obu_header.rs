@@ -1,16 +1,16 @@
 use crate::bits::bitstream::BitStream;
 
-struct ObuHeader {
-    obu_forbidden_bit: bool,
-    obu_type: ObuType,
-    obu_extension_flag: bool,
-    obu_has_size_field: bool,
-    obu_reserved_1bit: bool,
-    obu_extension_header: Option<ObuExtensionHeader>,
+pub struct ObuHeader {
+    pub obu_forbidden_bit: bool,
+    pub obu_type: ObuType,
+    pub obu_extension_flag: bool,
+    pub obu_has_size_field: bool,
+    pub obu_reserved_1bit: bool,
+    pub obu_extension_header: Option<ObuExtensionHeader>,
 }
 
 impl ObuHeader {
-    fn new(bitstream: &mut BitStream) -> ObuHeader {
+    pub fn new(bitstream: &mut BitStream) -> ObuHeader {
         let obu_forbidden_bit = bitstream.f(1) != 0;
         let obu_type = ObuType::new(bitstream.f(4));
         let obu_extension_flag = bitstream.f(1) != 0;
@@ -34,7 +34,7 @@ impl ObuHeader {
 }
 
 #[derive(Debug, PartialEq)]
-enum ObuType {
+pub enum ObuType {
     Reserved,
     ObuSequenceHeader,
     ObuTemporalDelimiter,
@@ -66,10 +66,10 @@ impl ObuType {
     }
 }
 
-#[derive(Debug, PartialEq)]
-struct ObuExtensionHeader {
-    temporal_id: u64,
-    spatial_id: u64,
+#[derive(Clone, Debug, PartialEq)]
+pub struct ObuExtensionHeader {
+    pub temporal_id: u64,
+    pub spatial_id: u64,
     extension_header_reserved_3bits: u64,
 }
 
