@@ -28,10 +28,14 @@ pub struct State {
     tile_num: bool,
     frame_is_intra: bool,
     ref_frame_type: Vec<u64>,
-    ref_valid: Vec<u64>,
+    ref_valid: Vec<bool>,
     ref_order_hint: Vec<u64>,
     order_hints: Vec<u64>,
     prev_frame_id: u64,
+    upscaled_width: u64,
+    frame_width: u64,
+    delta_frame_id: u64,
+    ref_frame_sign_bias: Vec<u64>,
 }
 
 impl Parser {

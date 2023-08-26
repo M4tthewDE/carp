@@ -52,11 +52,22 @@ pub struct UncompressedHeader {
     error_resilient_mode: bool,
     disable_cdf_update: bool,
     allow_screen_content_tools: bool,
-    force_integer_mv: u64,
+    force_integer_mv: bool,
     current_frame_id: u64,
     frame_size_override_flag: bool,
     primary_ref_frame: u64,
     buffer_removal_time: Vec<u64>,
+    allow_high_precision_mv: bool,
+    use_ref_frame_mvs: bool,
+    allow_intrabc: bool,
+    ref_order_hint: Vec<u64>,
+    frame_refs_short_signaling: bool,
+    last_frame_idx: usize,
+    gold_frame_idx: usize,
+    ref_frame_idx: Vec<usize>,
+    expected_frame_id: Vec<u64>,
+    is_motion_mode_switchable: bool,
+    disable_frame_end_update_cdf: bool,
 }
 
 impl UncompressedHeader {
@@ -141,7 +152,7 @@ impl UncompressedHeader {
 
         if uh.frame_type == KEY_FRAME && uh.show_frame {
             for i in 0..NUM_REF_FRAMES {
-                state.ref_valid.insert(i, 0);
+                state.ref_valid.insert(i, false);
                 state.ref_order_hint.insert(i, 0);
             }
 
@@ -160,16 +171,16 @@ impl UncompressedHeader {
 
         if uh.allow_screen_content_tools {
             if sh.seq_force_integer_mv == SELECT_INTEGER_MV {
-                uh.force_integer_mv = b.f(1);
+                uh.force_integer_mv = b.f(1) != 0;
             } else {
-                uh.force_integer_mv = sh.seq_force_integer_mv;
+                uh.force_integer_mv = sh.seq_force_integer_mv != 0;
             }
         } else {
-            uh.force_integer_mv = 0;
+            uh.force_integer_mv = false;
         }
 
         if state.frame_is_intra {
-            uh.force_integer_mv = 1;
+            uh.force_integer_mv = true;
         }
 
         if sh.frame_id_numbers_present_flag {
@@ -225,6 +236,113 @@ impl UncompressedHeader {
                     }
                 }
             }
+        }
+
+        uh.allow_high_precision_mv = false;
+        uh.use_ref_frame_mvs = false;
+        uh.allow_intrabc = false;
+
+        if uh.frame_type == SWITCH_FRAME || uh.frame_type == KEY_FRAME && uh.show_frame {
+            uh.refresh_frame_flags = all_frames;
+        } else {
+            uh.refresh_frame_flags = b.f(8);
+        }
+
+        if !state.frame_is_intra || uh.refresh_frame_flags != all_frames {
+            if uh.error_resilient_mode && sh.enable_order_hint {
+                for i in 0..NUM_REF_FRAMES {
+                    uh.ref_order_hint[i] = b.f(state.order_hint_bits);
+                    if uh.ref_order_hint[i] != state.ref_order_hint[i] {
+                        state.ref_valid[i] = false;
+                    }
+                }
+            }
+        }
+
+        if state.frame_is_intra {
+            todo!("frame_size()");
+            todo!("render_size()");
+
+            if uh.allow_screen_content_tools && state.upscaled_width == state.frame_width {
+                uh.allow_intrabc = b.f(1) != 0;
+            }
+        } else {
+            if !sh.enable_order_hint {
+                uh.frame_refs_short_signaling = false;
+            } else {
+                uh.frame_refs_short_signaling = b.f(1) != 0;
+
+                if uh.frame_refs_short_signaling {
+                    uh.last_frame_idx = b.f(3) as usize;
+                    uh.gold_frame_idx = b.f(3) as usize;
+
+                    todo!("set_frame_refs()");
+                }
+            }
+
+            for i in 0..REFS_PER_FRAME {
+                if !uh.frame_refs_short_signaling {
+                    uh.ref_frame_idx[i] = b.f(3) as usize;
+                }
+                if sh.frame_id_numbers_present_flag {
+                    let n = sh.delta_frame_id_length_minus_2 + 2;
+                    state.delta_frame_id = b.f(n) + 1;
+                    uh.expected_frame_id[i] = (uh.current_frame_id + (1 << id_len)
+                        - state.delta_frame_id)
+                        % (1 << id_len);
+                }
+            }
+
+            if uh.frame_size_override_flag && !uh.error_resilient_mode {
+                todo!("frame_size_with_refs( )");
+            } else {
+                //todo!("frame_size()");
+                //todo!("render_size()");
+            }
+
+            if uh.force_integer_mv {
+                uh.allow_high_precision_mv = false;
+            } else {
+                uh.allow_high_precision_mv = b.f(1) != 0;
+            }
+
+            //todo!("read_interpolation_filter()");
+            uh.is_motion_mode_switchable = b.f(1) != 0;
+
+            if uh.error_resilient_mode || !sh.enable_ref_frame_mvs {
+                uh.use_ref_frame_mvs = false;
+            } else {
+                uh.use_ref_frame_mvs = b.f(1) != 0;
+            }
+
+            for i in 0..REFS_PER_FRAME {
+                let ref_frame = LAST_FRAME + 1;
+                let hint = state.ref_order_hint[uh.ref_frame_idx[i]];
+                state.order_hints[ref_frame] = hint;
+
+                if !sh.enable_order_hint {
+                    state.ref_frame_sign_bias[ref_frame] = 0;
+                } else {
+                    // todo!();
+                    //state.ref_frame_sign_bias[ref_frame] = get_relative_dist(hint, state.order_hint) > 0
+                }
+            }
+        }
+
+        if sh.reduced_still_picture_header || uh.disable_cdf_update {
+            uh.disable_frame_end_update_cdf = true;
+        } else {
+            uh.disable_frame_end_update_cdf = b.f(1) != 0;
+        }
+
+        if uh.primary_ref_frame == PRIMARY_REF_NONE {
+            // TODO
+            // init_non_coeff_cdfs();
+            // setup_past_independence( )
+        } else {
+            // TODO
+            // load_cdfs( ref_frame_idx[ primary_ref_frame ] )
+            // load_previous( )
         }
 
         uh
