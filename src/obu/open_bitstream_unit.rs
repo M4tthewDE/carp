@@ -11,7 +11,10 @@ impl OpenBitstreamUnit {
     pub fn new(
         bitstream: &mut BitStream,
         sz: u64,
-        operating_point_idc: bool,
+        operating_point_idc: &mut u64,
+        order_hint_bits: &mut u64,
+        bit_depth: &mut u64,
+        num_planes: &mut u64,
     ) -> Option<OpenBitstreamUnit> {
         let header = ObuHeader::new(bitstream);
 
@@ -24,18 +27,17 @@ impl OpenBitstreamUnit {
 
         if !matches!(header.obu_type, ObuType::ObuSequenceHeader)
             && matches!(header.obu_type, ObuType::ObuTemporalDelimiter)
-            && operating_point_idc
+            && *operating_point_idc != 0
             && header.obu_extension_flag
         {
-            let in_temporal_layer = ((operating_point_idc as u64
+            let in_temporal_layer = ((*operating_point_idc
                 >> header.obu_extension_header.clone().unwrap().temporal_id)
                 & 1)
                 != 0;
 
-            let in_spatial_layer = (operating_point_idc as u64
-                >> (header.obu_extension_header.unwrap().spatial_id + 8)
-                & 1)
-                != 0;
+            let in_spatial_layer =
+                (*operating_point_idc >> (header.obu_extension_header.unwrap().spatial_id + 8) & 1)
+                    != 0;
 
             if !in_temporal_layer || !in_spatial_layer {
                 OpenBitstreamUnit::drop_obu(bitstream, obu_size);
@@ -44,7 +46,13 @@ impl OpenBitstreamUnit {
         }
 
         match header.obu_type {
-            ObuType::ObuSequenceHeader => ObuSequenceHeader::new(bitstream),
+            ObuType::ObuSequenceHeader => ObuSequenceHeader::new(
+                bitstream,
+                operating_point_idc,
+                order_hint_bits,
+                bit_depth,
+                num_planes,
+            ),
             _ => todo!("not implemented"),
         };
 
