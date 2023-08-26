@@ -46,6 +46,26 @@ impl BitStream {
 
         value
     }
+
+    pub fn uvlc(&mut self) -> u64 {
+        let mut leading_zeros = 0;
+
+        loop {
+            let done = self.f(1) != 0;
+            if done {
+                break;
+            }
+
+            leading_zeros += 1;
+        }
+
+        if leading_zeros >= 32 {
+            return (1 << 32) - 1;
+        }
+
+        let value = self.f(leading_zeros);
+        value + (1 << leading_zeros) - 1
+    }
 }
 
 #[cfg(test)]

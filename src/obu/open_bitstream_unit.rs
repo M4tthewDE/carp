@@ -1,6 +1,9 @@
 use crate::bits::bitstream::BitStream;
 
-use super::obu_header::{ObuHeader, ObuType};
+use super::{
+    obu_header::{ObuHeader, ObuType},
+    obu_sequence_header::ObuSequenceHeader,
+};
 
 struct OpenBitstreamUnit {}
 
@@ -29,8 +32,8 @@ impl OpenBitstreamUnit {
                 & 1)
                 != 0;
 
-            let in_spatial_layer = ((operating_point_idc as u64
-                >> header.obu_extension_header.unwrap().spatial_id + 8)
+            let in_spatial_layer = (operating_point_idc as u64
+                >> (header.obu_extension_header.unwrap().spatial_id + 8)
                 & 1)
                 != 0;
 
@@ -41,6 +44,7 @@ impl OpenBitstreamUnit {
         }
 
         match header.obu_type {
+            ObuType::ObuSequenceHeader => ObuSequenceHeader::new(bitstream),
             _ => todo!("not implemented"),
         };
 
