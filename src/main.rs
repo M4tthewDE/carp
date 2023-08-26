@@ -25,6 +25,8 @@ pub struct State {
     num_planes: u64,
     seen_frame_header: bool,
     tile_num: bool,
+    frame_is_intra: bool,
+    ref_frame_type: Vec<u64>,
 }
 
 impl Parser {
