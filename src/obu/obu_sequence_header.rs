@@ -207,5 +207,5 @@ impl ObuSequenceHeader {
     }
 }
 
-const SELECT_SCREEN_CONTENT_TOOLS: u64 = 2;
-const SELECT_INTEGER_MV: u64 = 2;
+pub const SELECT_SCREEN_CONTENT_TOOLS: u64 = 2;
+pub const SELECT_INTEGER_MV: u64 = 2;

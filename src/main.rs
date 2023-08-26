@@ -20,6 +20,7 @@ struct Parser {
 #[derive(Default)]
 pub struct State {
     operating_point_idc: u64,
+    order_hint: u64,
     order_hint_bits: u64,
     bit_depth: u64,
     num_planes: u64,
@@ -27,6 +28,10 @@ pub struct State {
     tile_num: bool,
     frame_is_intra: bool,
     ref_frame_type: Vec<u64>,
+    ref_valid: Vec<u64>,
+    ref_order_hint: Vec<u64>,
+    order_hints: Vec<u64>,
+    prev_frame_id: u64,
 }
 
 impl Parser {
