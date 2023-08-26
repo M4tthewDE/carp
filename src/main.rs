@@ -14,10 +14,17 @@ fn main() {
 
 #[derive(Default)]
 struct Parser {
+    state: State,
+}
+
+#[derive(Default)]
+pub struct State {
     operating_point_idc: u64,
     order_hint_bits: u64,
     bit_depth: u64,
     num_planes: u64,
+    seen_frame_header: bool,
+    tile_num: bool,
 }
 
 impl Parser {
@@ -44,14 +51,7 @@ impl Parser {
         while sz > 0 {
             let obu_length = b.leb128();
             sz -= b.leb_128_bytes;
-            let _obu = OpenBitstreamUnit::new(
-                b,
-                sz,
-                &mut self.operating_point_idc,
-                &mut self.order_hint_bits,
-                &mut self.bit_depth,
-                &mut self.num_planes,
-            );
+            let _obu = OpenBitstreamUnit::new(b, sz, &mut self.state);
             sz -= obu_length;
         }
     }

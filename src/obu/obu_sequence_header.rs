@@ -1,4 +1,4 @@
-use crate::bits::bitstream::BitStream;
+use crate::{bits::bitstream::BitStream, State};
 
 use super::{
     color_config::ColorConfig, decoder_model_info::DecoderModelInfo,
@@ -7,68 +7,63 @@ use super::{
 
 #[derive(Default)]
 pub struct ObuSequenceHeader {
-    timing_info_present_flag: bool,
-    decoder_model_info_present_flag: bool,
-    initial_display_delay_present_flag: bool,
-    initial_display_delay_minus_1: Vec<u64>,
-    operating_points_cnt_minus_1: usize,
-    operating_point_idc: Vec<u64>,
-    seq_level_idx: Vec<u64>,
-    seq_tier: Vec<u64>,
-    decoder_model_present_for_this_op: Vec<bool>,
-    initial_display_delay_present_for_this_op: Vec<bool>,
-    still_picture: bool,
+    pub timing_info_present_flag: bool,
+    pub decoder_model_info_present_flag: bool,
+    pub reduced_still_picture_header: bool,
+    pub initial_display_delay_present_flag: bool,
+    pub initial_display_delay_minus_1: Vec<u64>,
+    pub operating_points_cnt_minus_1: usize,
+    pub operating_point_idc: Vec<u64>,
+    pub seq_level_idx: Vec<u64>,
+    pub seq_tier: Vec<u64>,
+    pub decoder_model_present_for_this_op: Vec<bool>,
+    pub initial_display_delay_present_for_this_op: Vec<bool>,
+    pub still_picture: bool,
 
-    timing_info: Option<TimingInfo>,
-    decoder_model_info: Option<DecoderModelInfo>,
-    operating_parameters_info: Option<OperatingParamtersInfo>,
+    pub timing_info: Option<TimingInfo>,
+    pub decoder_model_info: Option<DecoderModelInfo>,
+    pub operating_parameters_info: Option<OperatingParamtersInfo>,
 
-    frame_width_bits_minus_1: u64,
-    frame_height_bits_minus_1: u64,
-    max_frame_width_minus_1: u64,
-    max_frame_height_minus_1: u64,
-    frame_id_numbers_present_flag: bool,
-    delta_frame_id_length_minus_2: u64,
-    additional_frame_id_length_minus_1: u64,
+    pub frame_width_bits_minus_1: u64,
+    pub frame_height_bits_minus_1: u64,
+    pub max_frame_width_minus_1: u64,
+    pub max_frame_height_minus_1: u64,
+    pub frame_id_numbers_present_flag: bool,
+    pub delta_frame_id_length_minus_2: u64,
+    pub additional_frame_id_length_minus_1: u64,
 
-    use_128x128_superblock: bool,
-    enable_filter_intra: bool,
-    enable_intra_edge_filter: bool,
+    pub use_128x128_superblock: bool,
+    pub enable_filter_intra: bool,
+    pub enable_intra_edge_filter: bool,
 
-    enable_interintra_compound: bool,
-    enable_masked_compound: bool,
-    enable_warped_motion: bool,
-    enable_dual_filter: bool,
-    enable_order_hint: bool,
-    enable_jnt_comp: bool,
-    enable_ref_frame_mvs: bool,
-    seq_force_screen_content_tools: u64,
-    seq_force_integer_mv: u64,
-    seq_choose_screen_content_tools: bool,
-    seq_choose_integer_mv: bool,
+    pub enable_interintra_compound: bool,
+    pub enable_masked_compound: bool,
+    pub enable_warped_motion: bool,
+    pub enable_dual_filter: bool,
+    pub enable_order_hint: bool,
+    pub enable_jnt_comp: bool,
+    pub enable_ref_frame_mvs: bool,
+    pub seq_force_screen_content_tools: u64,
+    pub seq_force_integer_mv: u64,
+    pub seq_choose_screen_content_tools: bool,
+    pub seq_choose_integer_mv: bool,
 
-    enable_superres: bool,
-    enable_cdef: bool,
-    enable_restoration: bool,
-    film_grain_params_present: bool,
+    pub enable_superres: bool,
+    pub enable_cdef: bool,
+    pub enable_restoration: bool,
+    pub film_grain_params_present: bool,
 
-    color_config: ColorConfig,
+    pub color_config: ColorConfig,
 }
 
 impl ObuSequenceHeader {
-    pub fn new(
-        b: &mut BitStream,
-        operating_point_idc: &mut u64,
-        order_hint_bits: &mut u64,
-        bit_depth: &mut u64,
-        num_planes: &mut u64,
-    ) -> ObuSequenceHeader {
+    pub fn new(b: &mut BitStream, state: &mut State) -> ObuSequenceHeader {
         let mut osh = ObuSequenceHeader::default();
         let seq_profile = b.f(3);
         osh.still_picture = b.f(1) != 0;
 
-        let reduced_still_picture_header = b.f(1) != 0;
-        if reduced_still_picture_header {
+        osh.reduced_still_picture_header = b.f(1) != 0;
+        if osh.reduced_still_picture_header {
             osh.operating_point_idc.push(0);
             osh.seq_level_idx.push(0);
             osh.seq_tier.push(0);
@@ -133,7 +128,7 @@ impl ObuSequenceHeader {
 
         let operating_point = ObuSequenceHeader::choose_operating_point();
 
-        *operating_point_idc = *osh.operating_point_idc.get(operating_point).unwrap();
+        state.operating_point_idc = *osh.operating_point_idc.get(operating_point).unwrap();
 
         osh.frame_width_bits_minus_1 = b.f(4);
         osh.frame_height_bits_minus_1 = b.f(4);
@@ -141,7 +136,7 @@ impl ObuSequenceHeader {
         osh.max_frame_width_minus_1 = b.f(osh.frame_width_bits_minus_1 + 1);
         osh.max_frame_height_minus_1 = b.f(osh.frame_height_bits_minus_1 + 1);
 
-        if reduced_still_picture_header {
+        if osh.reduced_still_picture_header {
             osh.frame_id_numbers_present_flag = false;
         } else {
             osh.frame_id_numbers_present_flag = b.f(1) != 0;
@@ -156,10 +151,10 @@ impl ObuSequenceHeader {
         osh.enable_filter_intra = b.f(1) != 0;
         osh.enable_intra_edge_filter = b.f(1) != 0;
 
-        if reduced_still_picture_header {
+        if osh.reduced_still_picture_header {
             osh.seq_force_screen_content_tools = SELECT_SCREEN_CONTENT_TOOLS;
             osh.seq_force_integer_mv = SELECT_INTEGER_MV;
-            *order_hint_bits = 0;
+            state.order_hint_bits = 0;
         } else {
             osh.enable_interintra_compound = b.f(1) != 0;
             osh.enable_masked_compound = b.f(1) != 0;
@@ -190,9 +185,9 @@ impl ObuSequenceHeader {
 
             if osh.enable_order_hint {
                 let order_hint_bits_minus_1 = b.f(3);
-                *order_hint_bits = order_hint_bits_minus_1 + 1;
+                state.order_hint_bits = order_hint_bits_minus_1 + 1;
             } else {
-                *order_hint_bits = 0;
+                state.order_hint_bits = 0;
             }
         }
 
@@ -201,7 +196,8 @@ impl ObuSequenceHeader {
         osh.enable_restoration = b.f(1) != 0;
         osh.film_grain_params_present = b.f(1) != 0;
 
-        osh.color_config = ColorConfig::new(b, seq_profile, bit_depth, num_planes);
+        osh.color_config =
+            ColorConfig::new(b, seq_profile, &mut state.bit_depth, &mut state.num_planes);
 
         osh
     }

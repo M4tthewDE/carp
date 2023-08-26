@@ -1,4 +1,4 @@
-use crate::bits::bitstream::BitStream;
+use crate::{bits::bitstream::BitStream, State};
 
 use super::{
     obu_header::{ObuHeader, ObuType},
@@ -8,15 +8,7 @@ use super::{
 pub struct OpenBitstreamUnit {}
 
 impl OpenBitstreamUnit {
-    pub fn new(
-        bitstream: &mut BitStream,
-        sz: u64,
-        // THESE ARE QUESTIONABLE
-        operating_point_idc: &mut u64,
-        order_hint_bits: &mut u64,
-        bit_depth: &mut u64,
-        num_planes: &mut u64,
-    ) -> Option<OpenBitstreamUnit> {
+    pub fn new(bitstream: &mut BitStream, sz: u64, state: &mut State) -> Option<OpenBitstreamUnit> {
         let header = ObuHeader::new(bitstream);
 
         let obu_size = match header.obu_has_size_field {
@@ -28,17 +20,18 @@ impl OpenBitstreamUnit {
 
         if !matches!(header.obu_type, ObuType::ObuSequenceHeader)
             && matches!(header.obu_type, ObuType::ObuTemporalDelimiter)
-            && *operating_point_idc != 0
+            && state.operating_point_idc != 0
             && header.obu_extension_flag
         {
-            let in_temporal_layer = ((*operating_point_idc
+            let in_temporal_layer = ((state.operating_point_idc
                 >> header.obu_extension_header.clone().unwrap().temporal_id)
                 & 1)
                 != 0;
 
-            let in_spatial_layer =
-                (*operating_point_idc >> (header.obu_extension_header.unwrap().spatial_id + 8) & 1)
-                    != 0;
+            let in_spatial_layer = (state.operating_point_idc
+                >> (header.obu_extension_header.unwrap().spatial_id + 8)
+                & 1)
+                != 0;
 
             if !in_temporal_layer || !in_spatial_layer {
                 OpenBitstreamUnit::drop_obu(bitstream, obu_size);
@@ -47,13 +40,7 @@ impl OpenBitstreamUnit {
         }
 
         match header.obu_type {
-            ObuType::ObuSequenceHeader => ObuSequenceHeader::new(
-                bitstream,
-                operating_point_idc,
-                order_hint_bits,
-                bit_depth,
-                num_planes,
-            ),
+            ObuType::ObuSequenceHeader => ObuSequenceHeader::new(bitstream, state),
             _ => todo!("not implemented"),
         };
 
