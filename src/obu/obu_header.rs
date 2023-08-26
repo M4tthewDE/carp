@@ -54,7 +54,7 @@ impl ObuType {
             1 => ObuType::ObuSequenceHeader,
             2 => ObuType::ObuTemporalDelimiter,
             3 => ObuType::ObuFrameHeader,
-            4 => ObuType::ObuFrameHeader,
+            4 => ObuType::ObuTileGroup,
             5 => ObuType::ObuMetadata,
             6 => ObuType::ObuFrame,
             7 => ObuType::ObuRedundantFrameHeader,

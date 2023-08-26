@@ -17,6 +17,7 @@ pub struct ObuSequenceHeader {
     seq_tier: Vec<u64>,
     decoder_model_present_for_this_op: Vec<bool>,
     initial_display_delay_present_for_this_op: Vec<bool>,
+    still_picture: bool,
 
     timing_info: Option<TimingInfo>,
     decoder_model_info: Option<DecoderModelInfo>,
@@ -64,9 +65,9 @@ impl ObuSequenceHeader {
     ) -> ObuSequenceHeader {
         let mut osh = ObuSequenceHeader::default();
         let seq_profile = b.f(3);
-        let still_picture = b.f(1);
-        let reduced_still_picture_header = b.f(1) != 0;
+        osh.still_picture = b.f(1) != 0;
 
+        let reduced_still_picture_header = b.f(1) != 0;
         if reduced_still_picture_header {
             osh.operating_point_idc.push(0);
             osh.seq_level_idx.push(0);

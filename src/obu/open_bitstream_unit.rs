@@ -5,12 +5,13 @@ use super::{
     obu_sequence_header::ObuSequenceHeader,
 };
 
-struct OpenBitstreamUnit {}
+pub struct OpenBitstreamUnit {}
 
 impl OpenBitstreamUnit {
     pub fn new(
         bitstream: &mut BitStream,
         sz: u64,
+        // THESE ARE QUESTIONABLE
         operating_point_idc: &mut u64,
         order_hint_bits: &mut u64,
         bit_depth: &mut u64,
@@ -23,7 +24,7 @@ impl OpenBitstreamUnit {
             false => sz - 1 - header.obu_extension_flag as u64,
         };
 
-        let start_position = bitstream.position;
+        let _start_position = bitstream.position;
 
         if !matches!(header.obu_type, ObuType::ObuSequenceHeader)
             && matches!(header.obu_type, ObuType::ObuTemporalDelimiter)

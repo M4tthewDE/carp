@@ -3,9 +3,9 @@ use crate::bits::bitstream::BitStream;
 #[derive(Clone)]
 pub struct DecoderModelInfo {
     pub buffer_delay_length_minus_1: u64,
-    num_units_in_decoding_tick: u64,
-    buffer_removal_time_length_minus_1: u64,
-    frame_presentation_time_length_minus_1: u64,
+    pub num_units_in_decoding_tick: u64,
+    pub buffer_removal_time_length_minus_1: u64,
+    pub frame_presentation_time_length_minus_1: u64,
 }
 
 impl DecoderModelInfo {

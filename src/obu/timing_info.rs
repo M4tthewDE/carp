@@ -1,10 +1,10 @@
 use crate::bits::bitstream::BitStream;
 
 pub struct TimingInfo {
-    num_units_in_display_tick: u64,
-    time_scale: u64,
-    equal_picture_interval: bool,
-    num_ticks_per_picture_minus_1: u64,
+    pub num_units_in_display_tick: u64,
+    pub time_scale: u64,
+    pub equal_picture_interval: bool,
+    pub num_ticks_per_picture_minus_1: u64,
 }
 
 impl TimingInfo {

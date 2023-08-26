@@ -1,7 +1,7 @@
 pub struct BitStream {
     bits: Vec<u8>,
     pub position: usize,
-    leb_128_bytes: u64,
+    pub leb_128_bytes: u64,
 }
 
 impl BitStream {
@@ -65,6 +65,10 @@ impl BitStream {
 
         let value = self.f(leading_zeros);
         value + (1 << leading_zeros) - 1
+    }
+
+    pub fn more_data_in_bitstream(&self) -> bool {
+        self.bits.len() * 8 <= self.position
     }
 }
 
